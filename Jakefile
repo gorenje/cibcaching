@@ -1,10 +1,10 @@
-/*
- * Jakefile
- * cibcaching
- *
- * Created by You on March 12, 2011.
- * Copyright 2011, Your Company All rights reserved.
- */
+//
+// Add any Xibs you want to convert during the build process.
+// These are automagically converted to CIBs, suitable to be used
+// with Cappuccino. No prefix or extension is required, e.g.
+//   'Fubar' will convert Resources/Fubar.xib to Resources/Fubar.cib
+//
+var XibsToConvert = ["FirstWindow", "SecondWindow"];
 
 var ENV = require("system").env,
     FILE = require("file"),
@@ -15,21 +15,22 @@ var ENV = require("system").env,
     configuration = ENV["CONFIG"] || ENV["CONFIGURATION"] || ENV["c"] || "Debug",
     OS = require("os");
 
-app ("cibcaching", function(task)
+app ("CibCaching", function(task)
 {
-    task.setBuildIntermediatesPath(FILE.join("Build", "cibcaching.build", configuration));
+    task.setBuildIntermediatesPath(FILE.join("Build", "CibCaching.build", configuration));
     task.setBuildPath(FILE.join("Build", configuration));
 
-    task.setProductName("cibcaching");
-    task.setIdentifier("com.yourcompany.cibcaching");
+    task.setProductName("CibCaching");
+    task.setIdentifier(".com.cib.Caching");
     task.setVersion("1.0");
-    task.setAuthor("Your Company");
-    task.setEmail("feedback @nospam@ yourcompany.com");
-    task.setSummary("cibcaching");
+    task.setAuthor("Two Monkeys");
+    task.setEmail("feedback @nospam@ 2monki.es");
+    task.setSummary("CibCaching");
     task.setSources((new FileList("**/*.j")).exclude(FILE.join("Build", "**")));
     task.setResources(new FileList("Resources/**"));
     task.setIndexFilePath("index.html");
     task.setInfoPlistPath("Info.plist");
+    task.setNib2CibFlags("-R Resources/");
 
     if (configuration === "Debug")
         task.setCompilerFlags("-DDEBUG -g");
@@ -37,12 +38,40 @@ app ("cibcaching", function(task)
         task.setCompilerFlags("-O");
 });
 
-task ("default", ["cibcaching"], function()
+function printResults(configuration)
+{
+    print("----------------------------");
+    print(configuration+" app built at path: "+FILE.join("Build", configuration, "CibCaching"));
+    print("----------------------------");
+}
+
+task ("default", ["nibs", "CibCaching"], function()
 {
     printResults(configuration);
 });
 
-task ("build", ["default"]);
+task( "cloc", function()
+{
+  OS.system(["ohcount", "app/", "AppController.j"]);
+});
+
+task( "nibs", function()
+{
+  // Tried using JAKE.file but that didn't not want to work with subdirectories, 
+  // i.e. Resources/
+  for ( var idx = 0; idx < XibsToConvert.length; idx++ ) {
+    var filenameXib = "Resources/../Xibs/" + XibsToConvert[idx] + ".xib";
+    var filenameCib = "Resources/" + XibsToConvert[idx] + ".cib";
+    if ( !FILE.exists(filenameCib) || FILE.mtime(filenameXib) > FILE.mtime(filenameCib) ) {
+      print("Converting to cib: " + filenameXib);
+      OS.system(["nib2cib", filenameXib, filenameCib]);
+    } else {
+      print("Ignoring " + filenameXib + " -> has been converted");
+    }
+  }
+});
+
+task ("build", ["nibs", "default"]);
 
 task ("debug", function()
 {
@@ -58,36 +87,63 @@ task ("release", function()
 
 task ("run", ["debug"], function()
 {
-    OS.system(["open", FILE.join("Build", "Debug", "cibcaching", "index.html")]);
+    OS.system(["open", FILE.join("Build", "Debug", "CibCaching", "index.html")]);
 });
 
 task ("run-release", ["release"], function()
 {
-    OS.system(["open", FILE.join("Build", "Release", "cibcaching", "index.html")]);
+    OS.system(["open", FILE.join("Build", "Release", "CibCaching", "index.html")]);
+});
+
+task ("press", ["release"], function()
+{
+  FILE.mkdirs(FILE.join("Build", "Press", "CibCaching"));
+  OS.system(["press", "-f", FILE.join("Build", "Release", "CibCaching"), 
+             FILE.join("Build", "Press", "CibCaching")]);
 });
 
 task ("deploy", ["release"], function()
 {
-    FILE.mkdirs(FILE.join("Build", "Deployment", "cibcaching"));
-    OS.system(["press", "-f", FILE.join("Build", "Release", "cibcaching"), FILE.join("Build", "Deployment", "cibcaching")]);
-    printResults("Deployment")
+    FILE.mkdirs(FILE.join("Build", "Deployment", "CibCaching"));
+    OS.system(["press", "-f", FILE.join("Build", "Release", "CibCaching"), 
+               FILE.join("Build", "Deployment", "CibCaching")]);
+    printResults("Deployment");
 });
 
-task ("desktop", ["release"], function()
+task ("flatten", ["press"], function()
 {
-    FILE.mkdirs(FILE.join("Build", "Desktop", "cibcaching"));
-    require("cappuccino/nativehost").buildNativeHost(FILE.join("Build", "Release", "cibcaching"), FILE.join("Build", "Desktop", "cibcaching", "cibcaching.app"));
-    printResults("Desktop")
+  FILE.mkdirs(FILE.join("Build", "Flatten", "CibCaching"));
+  var args = ["flatten", "-f", "--verbose", "--split", "2", 
+              "-c", "closure-compiler", "-F", "Frameworks"];
+  for ( var idx = 0; idx < XibsToConvert.length; idx++ ) {
+    args.push("-P");
+    args.push(FILE.join("Resources", XibsToConvert[idx] + ".cib"));
+  }
+  args.push(FILE.join("Build", "Press", "CibCaching"));
+  args.push(FILE.join("Build", "Flatten", "CibCaching"));
+  OS.system(args);
 });
 
-task ("run-desktop", ["desktop"], function()
+task( "documentation", [], function()
 {
-    OS.system([FILE.join("Build", "Desktop", "cibcaching", "cibcaching.app", "Contents", "MacOS", "NativeHost"), "-i"]);
+  OS.system("doxygen");
 });
 
-function printResults(configuration)
+task("test", function()
 {
-    print("----------------------------");
-    print(configuration+" app built at path: "+FILE.join("Build", configuration, "cibcaching"));
-    print("----------------------------");
-}
+    print("============> WARNING");
+    print("Ensure that test filenames are the same as the class that is defined");
+    print("E.g. TweetTest.j for TweetTest and not tweet_test.j (i.e. rails style)");
+    print("Otherwise you'll get a strange error: >>objj [warn]: unable to get tests<<");
+    print("============> END WARNING");
+
+    var tests = new FileList('Test/**/*Test.j');
+    var moretests = new FileList('Test/**/*_test.j');
+    var cmd = ["ojtest"].concat(tests.items()).concat(moretests.items());
+    //print( cmd.map(OS.enquote).join(" ") );
+    var cmdString = cmd.map(OS.enquote).join(" ");
+
+    var code = OS.system(cmdString);
+    if (code !== 0)
+        OS.exit(code);
+});
