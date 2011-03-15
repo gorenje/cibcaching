@@ -1,50 +1,27 @@
-Cib Caching
------------
+Instance Variable Shadowing
+---------------------------
 
-Demostration of cib caching.
+The point here is not to demostrate bad code but the fact that there are no warnings
+to advise of the fact that the behaviour differs in "development" mode and "compiled"
+mode.
 
-The 'Multiple Window' button opens the same window multiple times, the 'Single Window' 
-button only opens the single instance of the window, i.e. if the window is closed 
-it's reopend. If the window is open, a second window is not opened.
-
-The point is that both buttons initially retrieve the cib from the server. However the
-'Multiple Window' button will retrieve the cib for each window that it opens. The cib
-data itself should be cached and reused.
-
-However, this is actually the case if you flatten the project and provide a '-P' option
-for each cib file.
-
-Flatten
--------
-
-Using '-P <path to cib>' to flatten inlines the cib data and removes the need for any
-request to obtain the Cib. This works however in this demo, this causes JS errors in the 
-application and allows the single window button to open multiple windows.
-
->>>
-CPInternalInconsistencyException: Window for <FirstWindowController 0x004ad7> could not 
-be loaded from Cib or no window specified.
-Override loadWindow to load the window manually.
-<<<
-the same happened for the SecondWindowController.
-
-In both cases the windows, can not be closed (other than with the 'X' in the top-left) 
-using the 'Cancel' and 'Accept' buttons -- these aren't connected to the corresponding 
-actions of the controller (apparently).
-
-These errors weren't produced when using the application without flatten.
+See the code for the shadowing, but basically an instance variable is shadowed and
+and used as a local variable, but when set, it behaviours as a instance variable
+in development mode and as a local variable once compiled.
 
 Reproducing
 -----------
 
-# jake flatten
+To see the resul in "development" mode:
 
-Will build the flatten version of the project
-
-# cd Build/Flatten/CibCaching
 # open index.html
 
-Will open the flatten version of the application.
+To see the result in "compiled" mode:
+
+# jake flatten
+# open Build/{Press,Release,Flatten}/CibCaching/index.html
+
+All have the correct behaviour.
 
 Versions
 --------

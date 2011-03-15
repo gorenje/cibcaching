@@ -1,90 +1,69 @@
-/*
- * AppController.j
- * cibcaching
- *
- * Created by You on March 12, 2011.
- * Copyright 2011, Your Company All rights reserved.
- */
-
 @import <Foundation/CPObject.j>
 
+@implementation BaseClass : CPObject
+{
+  CPString idStr @accessors;
+}
 
-var SecondWindowControllerInstance = nil;
+- (id)initWithJSONObject:(JSObject)anObject
+{
+  self = [super init];
+  if (self) {
+    idStr = anObject.id_str;
+  }
+  return self;
+}
+
+- (void)resetIdStr
+{
+  var regexp = new RegExp(/\d+$/);
+  // shadowing instance variable right here.
+  var idStr = regexp.exec("http://twitter.com/#!/engineyard/status/37678550509158400");
+  if ( !idStr ) {
+    alert( 'unable to find id string' );
+  } else {
+    idStr = idStr[0]; // wanting to set the instance variable.
+  }
+}
+@end
 
 @implementation AppController : CPObject
-{
-}
 
 - (void)applicationDidFinishLaunching:(CPNotification)aNotification
 {
-    var theWindow = [[CPWindow alloc] initWithContentRect:CGRectMakeZero() styleMask:CPBorderlessBridgeWindowMask],
-        contentView = [theWindow contentView];
+  var theWindow = [[CPWindow alloc] initWithContentRect:CGRectMakeZero() 
+                                              styleMask:CPBorderlessBridgeWindowMask],
+    contentView = [theWindow contentView];
 
-    var button1 = [CPButton buttonWithTitle:"Multiple Windows"];
-    [button1 setTarget:self];
-    [button1 setAction:@selector(buttonOnePressed:)];
-    [button1 setFrameOrigin:CGPointMake( 100, 100 )];
-    [contentView addSubview:button1];
+  var jsStr = '{ "id_str" : "1234" }';
+  var jsObj = [jsStr objectFromJSON];
 
-    var button2 = [CPButton buttonWithTitle:"Single Window"];
-    [button2 setTarget:self];
-    [button2 setAction:@selector(buttonTwoPressed:)];
-    [button2 setFrameOrigin:CGPointMake( 250, 100 )];
-    [contentView addSubview:button2];
+  var testObject = [[BaseClass alloc] initWithJSONObject:jsObj];
+  
+  var label = [CPTextField labelWithTitle:@"To start with, idStr has value: " + [testObject idStr]];
+  [label setFrameOrigin:CGPointMake( 100, 80 )];
+  [contentView addSubview:label];
 
-    [theWindow orderFront:self];
-}
+  // reset the idStr value to be something else ....
+  [testObject resetIdStr];
+  var label = [CPTextField labelWithTitle:@"After resetting the value, we get a new value...."];
+  [label setFrameOrigin:CGPointMake( 100, 100 )];
+  [contentView addSubview:label];
 
-- (void)buttonOnePressed:(id)sender
-{
-  var controller = [FirstWindowController alloc];
-  [controller initWithWindowCibName:"FirstWindow"];
-  [controller showWindow:self];
-}
+  var label = [CPTextField labelWithTitle:@"After building project, value will be 1234. That is Release, Press and Flatten will all have the same correct behaviour and not reset the value."];
+  [label setFrameOrigin:CGPointMake( 100, 120 )];
+  [contentView addSubview:label];
 
-- (void)buttonTwoPressed:(id)sender
-{
-  if ( !SecondWindowControllerInstance ) {
-    SecondWindowControllerInstance = [SecondWindowController alloc];
-    [SecondWindowControllerInstance initWithWindowCibName:"SecondWindow"];
-  }
-  [SecondWindowControllerInstance showWindow:self];
-}
+  var label = [CPTextField labelWithTitle:@"However opening the index.html directly (i.e. 'development' mode), gives an incorrect 'reset' value of 37678550509158400"];
+  [label setFrameOrigin:CGPointMake( 100, 140 )];
+  [contentView addSubview:label];
 
-@end
-
-@implementation FirstWindowController : CPWindowController
-
-- (void)awakeFromCib
-{
-}
-
-- (CPAction)cancel:(id)sender
-{
-  [_window close];
-}
-
-- (CPAction)accept:(id)sender
-{
-  [_window close];
+  var label = [CPTextField labelWithTitle:@"And the value is: " + [testObject idStr]];
+  [label setFrameOrigin:CGPointMake( 100, 160 )];
+  [contentView addSubview:label];
+  
+  [theWindow orderFront:self];
 }
 
 @end
 
-@implementation SecondWindowController : CPWindowController
-
-- (void)awakeFromCib
-{
-}
-
-- (CPAction)cancel:(id)sender
-{
-  [_window close];
-}
-
-- (CPAction)accept:(id)sender
-{
-  [_window close];
-}
-
-@end
