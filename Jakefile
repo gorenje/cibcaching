@@ -1,10 +1,3 @@
-//
-// Add any Xibs you want to convert during the build process.
-// These are automagically converted to CIBs, suitable to be used
-// with Cappuccino. No prefix or extension is required, e.g.
-//   'Fubar' will convert Resources/Fubar.xib to Resources/Fubar.cib
-//
-var XibsToConvert = ["FirstWindow", "SecondWindow"];
 
 var ENV = require("system").env,
     FILE = require("file"),
@@ -38,6 +31,16 @@ app ("CibCaching", function(task)
         task.setCompilerFlags("-O");
 });
 
+function obtainXibs()
+{
+  var xibs = FILE.glob("Xibs/*.xib");
+  for ( var idx = 0 ; idx < xibs.length; idx++ ) {
+    // remove 'Xibs/' and '.xib' -- just want the names of the files
+    xibs[idx] = xibs[idx].substring(0, xibs[idx].length - 4).substring(5);
+  }
+  return xibs;
+}
+
 function printResults(configuration)
 {
     print("----------------------------");
@@ -57,11 +60,10 @@ task( "cloc", function()
 
 task( "nibs", function()
 {
-  // Tried using JAKE.file but that didn't not want to work with subdirectories, 
-  // i.e. Resources/
-  for ( var idx = 0; idx < XibsToConvert.length; idx++ ) {
-    var filenameXib = "Resources/../Xibs/" + XibsToConvert[idx] + ".xib";
-    var filenameCib = "Resources/" + XibsToConvert[idx] + ".cib";
+  var xibsToConvert = obtainXibs();
+  for ( var idx = 0; idx < xibsToConvert.length; idx++ ) {
+    var filenameXib = "Resources/../Xibs/" + xibsToConvert[idx] + ".xib";
+    var filenameCib = "Resources/" + xibsToConvert[idx] + ".cib";
     if ( !FILE.exists(filenameCib) || FILE.mtime(filenameXib) > FILE.mtime(filenameCib) ) {
       print("Converting to cib: " + filenameXib);
       OS.system(["nib2cib", filenameXib, filenameCib]);
@@ -112,12 +114,13 @@ task ("deploy", ["release"], function()
 
 task ("flatten", ["press"], function()
 {
+  var xibsToConvert = obtainXibs();
   FILE.mkdirs(FILE.join("Build", "Flatten", "CibCaching"));
   var args = ["flatten", "-f", "--verbose", "--split", "2", 
               "-c", "closure-compiler", "-F", "Frameworks"];
-  for ( var idx = 0; idx < XibsToConvert.length; idx++ ) {
+  for ( var idx = 0; idx < xibsToConvert.length; idx++ ) {
     args.push("-P");
-    args.push(FILE.join("Resources", XibsToConvert[idx] + ".cib"));
+    args.push(FILE.join("Resources", xibsToConvert[idx] + ".cib"));
   }
   args.push(FILE.join("Build", "Press", "CibCaching"));
   args.push(FILE.join("Build", "Flatten", "CibCaching"));
